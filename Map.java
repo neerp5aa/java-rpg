@@ -92,6 +92,7 @@ public class Map implements Common {
     public boolean isHit(int x, int y) {
         if (map[y][x] == 1 ||    // wall
             map[y][x] == 2 ||    // throan
+            map[y][x] == 4 ||    // cave wall
             map[y][x] == 5) {    // sea
             return true;
         }
@@ -288,6 +289,19 @@ public class Map implements Common {
                 System.out.print(map[i][j]);
             }
             System.out.println();
+        }
+    }
+
+    public int getTileAt(int x, int y) {
+        if (x >= 0 && x < col && y >= 0 && y < row) {
+            return map[y][x];
+        }
+        return -1;
+    }
+
+    public void setTileAt(int x, int y, int tileValue) {
+        if (x >= 0 && x < col && y >= 0 && y < row) {
+            map[y][x] = tileValue;
         }
     }
 }

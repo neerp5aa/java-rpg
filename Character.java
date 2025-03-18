@@ -2,6 +2,7 @@ import java.awt.*;
 import java.io.*;
 import java.awt.image.*;
 import javax.imageio.*;
+import java.util.ArrayList;
 
 public class Character implements Common {
     private static final int SPEED = 4;
@@ -25,6 +26,9 @@ public class Character implements Common {
 
     private int moveType;
     private String message;
+
+    // Inventory system
+    private ArrayList<String> inventory = new ArrayList<String>();
 
     // thread for character animation
     private Thread threadAnime;
@@ -238,10 +242,39 @@ public class Character implements Common {
     }
 
     public TreasureEvent search() {
+        // Check current position (standing on the chest)
         Event event = map.checkEvent(x, y);
         if (event instanceof TreasureEvent) {
             return (TreasureEvent)event;
         }
+        
+        // Also check forward position (facing the chest)
+        int nextX = 0;
+        int nextY = 0;
+        switch (direction) {
+            case LEFT:
+                nextX = x - 1;
+                nextY = y;
+                break;
+            case RIGHT:
+                nextX = x + 1;
+                nextY = y;
+                break;
+            case UP:
+                nextX = x;
+                nextY = y - 1;
+                break;
+            case DOWN:
+                nextX = x;
+                nextY = y + 1;
+                break;
+        }
+        
+        event = map.checkEvent(nextX, nextY);
+        if (event instanceof TreasureEvent) {
+            return (TreasureEvent)event;
+        }
+        
         return null;
     }
 
@@ -268,9 +301,37 @@ public class Character implements Common {
         }
         Event event = map.checkEvent(nextX, nextY);
         if (event instanceof DoorEvent) {
-            return (DoorEvent)event;
+            // Check if player has key before opening door
+            if (hasItem("KEY")) {
+                return (DoorEvent)event;
+            }
         }
         return null;
+    }
+
+    public boolean isFacingDoor() {
+        int nextX = 0;
+        int nextY = 0;
+        switch (direction) {
+        case LEFT:
+            nextX = x - 1;
+            nextY = y;
+            break;
+        case RIGHT:
+            nextX = x + 1;
+            nextY = y;
+            break;
+        case UP:
+            nextX = x;
+            nextY = y - 1;
+            break;
+        case DOWN:
+            nextX = x;
+            nextY = y + 1;
+            break;
+        }
+        Event event = map.checkEvent(nextX, nextY);
+        return (event instanceof DoorEvent);
     }
 
     public int getX() {
@@ -312,6 +373,27 @@ public class Character implements Common {
 
     public int getMoveType() {
         return moveType;
+    }
+
+    // Inventory management methods
+    public void addToInventory(String item) {
+        inventory.add(item);
+    }
+    
+    public boolean hasItem(String itemName) {
+        return inventory.contains(itemName);
+    }
+    
+    public ArrayList<String> getInventory() {
+        return inventory;
+    }
+    
+    public void clearInventory() {
+        inventory.clear();
+    }
+    
+    public void removeFromInventory(String itemName) {
+        inventory.remove(itemName);
     }
 
     private void loadImage(String filename) {

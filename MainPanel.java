@@ -39,7 +39,7 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
 
     // BGM
     // from TAM Music Factory http://www.tam-music.com/
-    private static final String[] bgmNames = {"castle", "field"};
+    private static final String[] bgmNames = {"castle", "field", "cave", "village"};
     // Sound Clip
     private static final String[] soundNames = {"treasure", "door", "step"};
 
@@ -61,9 +61,11 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
         spaceKey = new ActionKey(ActionKey.DETECT_INITIAL_PRESS_ONLY);
 
         // create map
-        maps = new Map[2];
+        maps = new Map[4];
         maps[0] = new Map("map/castle.map", "event/castle.evt", "castle", this);
         maps[1] = new Map("map/field.map", "event/field.evt", "field", this);
+        maps[2] = new Map("map/cave.map", "event/cave.evt", "cave", this);
+        maps[3] = new Map("map/village.map", "event/village.evt", "village", this);
         mapNo = 0;  // initial map
 
         // create character
@@ -165,6 +167,16 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
         // draw message window
         messageWindow.draw(dbg);
 
+        // display inventory in top right
+        Font inventoryFont = new Font("SansSerif", Font.BOLD, 12);
+        dbg.setFont(inventoryFont);
+        dbg.setColor(Color.BLACK);
+        ArrayList<String> inventory = hero.getInventory();
+        dbg.drawString("INVENTORY:", WIDTH - 150, 20);
+        for (int i = 0; i < inventory.size(); i++) {
+            dbg.drawString("- " + inventory.get(i), WIDTH - 150, 40 + (i * 20));
+        }
+
         // display debug information
         if (DEBUG_MODE) {
             Font font = new Font("SansSerif", Font.BOLD, 16);
@@ -226,10 +238,14 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
             // search
             TreasureEvent treasure = hero.search();
             if (treasure != null) {
+                // Normal treasures
                 waveEngine.play("treasure");
                 messageWindow.setMessage("HERO DISCOVERED/" + treasure.getItemName());
                 messageWindow.show();
                 maps[mapNo].removeEvent(treasure);
+                
+                // Add item to inventory for normal treasures
+                hero.addToInventory(treasure.getItemName());
                 return;
             }
 
@@ -239,12 +255,50 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
                 waveEngine.play("door");
                 maps[mapNo].removeEvent(door);
                 return;
+            } else if (hero.isFacingDoor() && !hero.hasItem("KEY")) {
+                messageWindow.setMessage("YOU NEED A KEY/TO OPEN THIS DOOR");
+                messageWindow.show();
+                return;
             }
 
             // talk
             if (!messageWindow.isVisible()) {
                 Character c = hero.talkWith();
                 if (c != null) {
+                    // Check if talking to the village elder with legendary key
+                    if (mapNo == 3 && c.getX() == 12 && c.getY() == 12 && 
+                        c.getMessage().startsWith("I AM THE VILLAGE ELDER")) {
+                        
+                        if (hero.hasItem("LEGENDARY KEY")) {
+                            // Win condition!
+                            messageWindow.setMessage("THANK YOU BRAVE HERO!/YOU HAVE SAVED OUR REALM/WITH THE LEGENDARY KEY!");
+                            messageWindow.show();
+                            
+                            // Remove the key
+                            hero.removeFromInventory("LEGENDARY KEY");
+                            
+                            // Show win message and exit after a short delay
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(2000);
+                                    JOptionPane.showMessageDialog(null, 
+                                        "CONGRATULATIONS! YOU HAVE WON THE GAME!", 
+                                        "GAME OVER", 
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                    System.exit(0);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }).start();
+                            
+                            return;
+                        } else {
+                            messageWindow.setMessage("I NEED THE LEGENDARY KEY/TO SAVE OUR REALM!/FIND IT IN THE CAVE!");
+                            messageWindow.show();
+                            return;
+                        }
+                    }
+                    
                     messageWindow.setMessage(c.getMessage());
                     messageWindow.show();
                 } else {
@@ -266,14 +320,72 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
     private void heroMove() {
         if (hero.isMoving()) {
             if (hero.move()) {
+                // Check if player is on a deadly red crystal (tile 6)
+                if (maps[mapNo].getTileAt(hero.getX(), hero.getY()) == 6) {
+                    // Player died
+                    waveEngine.play("door"); // Use door sound as death sound
+                    messageWindow.setMessage("YOU TOUCHED A RED CRYSTAL!/GAME OVER!");
+                    messageWindow.show();
+                    hero.clearInventory();
+                    // Respawn at entrance of current map
+                    maps[mapNo].removeCharacter(hero);
+                    if (mapNo == 2) { // Cave map
+                        hero = new Character(9, 3, 0, DOWN, 0, maps[mapNo]);
+                    } else {
+                        // Default respawn for other maps
+                        hero = new Character(6, 6, 0, DOWN, 0, maps[mapNo]);
+                    }
+                    maps[mapNo].addCharacter(hero);
+                    return;
+                }
+                
                 Event event = maps[mapNo].checkEvent(hero.getX(), hero.getY());
                 if (event instanceof MoveEvent) {
                     waveEngine.play("step");
                     // move to another map
                     MoveEvent m = (MoveEvent)event;
                     maps[mapNo].removeCharacter(hero);
+                    
+                    // Save inventory before changing maps
+                    ArrayList<String> savedInventory = new ArrayList<>(hero.getInventory());
+                    
                     mapNo = m.destMapNo;
-                    hero = new Character(m.destX, m.destY, 0, DOWN, 0, maps[mapNo]);
+                    
+                    // Ensure destination is not a wall or invalid area
+                    int safeX = m.destX;
+                    int safeY = m.destY;
+                    // If destination is a wall, find the nearest valid spot
+                    if (maps[mapNo].isHit(safeX, safeY)) {
+                        // Try nearby spaces in a small radius
+                        for (int radius = 1; radius < 5; radius++) {
+                            boolean found = false;
+                            for (int dx = -radius; dx <= radius && !found; dx++) {
+                                for (int dy = -radius; dy <= radius && !found; dy++) {
+                                    int testX = safeX + dx;
+                                    int testY = safeY + dy;
+                                    // Validate coordinates are in bounds
+                                    if (testX >= 0 && testX < maps[mapNo].getCol() && 
+                                        testY >= 0 && testY < maps[mapNo].getRow()) {
+                                        if (!maps[mapNo].isHit(testX, testY)) {
+                                            safeX = testX;
+                                            safeY = testY;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                    
+                    hero = new Character(safeX, safeY, 0, DOWN, 0, maps[mapNo]);
+                    
+                    // Restore inventory after changing maps
+                    for (String item : savedInventory) {
+                        hero.addToInventory(item);
+                    }
+                    
                     maps[mapNo].addCharacter(hero);
                     midiEngine.play(maps[mapNo].getBgmName());
                 }
