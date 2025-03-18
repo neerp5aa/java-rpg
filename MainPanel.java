@@ -304,38 +304,28 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
             if (!messageWindow.isVisible()) {
                 Character c = hero.talkWith();
                 if (c != null) {
-                    // Check if talking to the village elder with legendary key
-                    if (mapNo == 3 && c.getX() == 12 && c.getY() == 12 && 
-                        c.getMessage().startsWith("I AM THE VILLAGE ELDER")) {
+                    // Check if talking to the queen with legendary key
+                    if (mapNo == 3 && c.getX() == 12 && c.getY() == 10 && 
+                        hero.hasItem("LEGENDARY KEY")) {
+                        // Win condition!
+                        messageWindow.setMessage("CONGRATULATIONS BRAVE HERO!/YOU HAVE SAVED OUR REALM/WITH THE LEGENDARY KEY!");
+                        messageWindow.show();
                         
-                        if (hero.hasItem("LEGENDARY KEY")) {
-                            // Win condition!
-                            messageWindow.setMessage("THANK YOU BRAVE HERO!/YOU HAVE SAVED OUR REALM/WITH THE LEGENDARY KEY!");
-                            messageWindow.show();
-                            
-                            // Remove the key
-                            hero.removeFromInventory("LEGENDARY KEY");
-                            
-                            // Show win message and exit after a short delay
-                            new Thread(() -> {
-                                try {
-                                    Thread.sleep(2000);
-                                    JOptionPane.showMessageDialog(null, 
-                                        "CONGRATULATIONS! YOU HAVE WON THE GAME!", 
-                                        "GAME OVER", 
-                                        JOptionPane.INFORMATION_MESSAGE);
-                                    System.exit(0);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }).start();
-                            
-                            return;
-                        } else {
-                            messageWindow.setMessage("I NEED THE LEGENDARY KEY/TO SAVE OUR REALM!/FIND IT IN THE CAVE!");
-                            messageWindow.show();
-                            return;
-                        }
+                        // Show win message and exit
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(2000);
+                                JOptionPane.showMessageDialog(null, 
+                                    "WINNER!", 
+                                    "GAME OVER", 
+                                    JOptionPane.INFORMATION_MESSAGE);
+                                System.exit(0);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                        
+                        return;
                     }
                     
                     messageWindow.setMessage(c.getMessage());
