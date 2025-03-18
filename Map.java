@@ -268,7 +268,13 @@ public class Map implements Common {
     private void makeDoorEvent(StringTokenizer st) {
         int x = Integer.parseInt(st.nextToken());
         int y = Integer.parseInt(st.nextToken());
-        DoorEvent d = new DoorEvent(x, y);
+        DoorEvent d;
+        if (st.hasMoreTokens()) {
+            String requiredKey = st.nextToken();
+            d = new DoorEvent(x, y, requiredKey);
+        } else {
+            d = new DoorEvent(x, y);
+        }
         events.add(d);
     }
 

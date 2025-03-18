@@ -255,10 +255,49 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
                 waveEngine.play("door");
                 maps[mapNo].removeEvent(door);
                 return;
-            } else if (hero.isFacingDoor() && !hero.hasItem("KEY")) {
-                messageWindow.setMessage("YOU NEED A KEY/TO OPEN THIS DOOR");
-                messageWindow.show();
-                return;
+            } else if (hero.isFacingDoor()) {
+                // Check what key is required
+                Event event = null;
+                int nextX = 0, nextY = 0;
+                
+                // Determine the coordinates of the tile the hero is facing
+                switch (hero.getDirection()) {
+                    case LEFT:
+                        nextX = hero.getX() - 1;
+                        nextY = hero.getY();
+                        break;
+                    case RIGHT:
+                        nextX = hero.getX() + 1;
+                        nextY = hero.getY();
+                        break;
+                    case UP:
+                        nextX = hero.getX();
+                        nextY = hero.getY() - 1;
+                        break;
+                    case DOWN:
+                        nextX = hero.getX();
+                        nextY = hero.getY() + 1;
+                        break;
+                }
+                
+                event = maps[mapNo].checkEvent(nextX, nextY);
+                
+                if (event instanceof DoorEvent) {
+                    DoorEvent facingDoor = (DoorEvent) event;
+                    String requiredKey = facingDoor.getRequiredKey();
+                    
+                    if (requiredKey.equals("LEGENDARY KEY")) {
+                        if (!hero.hasItem("LEGENDARY KEY")) {
+                            messageWindow.setMessage("YOU NEED THE LEGENDARY KEY/TO OPEN THIS DOOR");
+                            messageWindow.show();
+                            return;
+                        }
+                    } else {
+                        messageWindow.setMessage("YOU NEED A KEY/TO OPEN THIS DOOR");
+                        messageWindow.show();
+                        return;
+                    }
+                }
             }
 
             // talk

@@ -301,9 +301,20 @@ public class Character implements Common {
         }
         Event event = map.checkEvent(nextX, nextY);
         if (event instanceof DoorEvent) {
-            // Check if player has key before opening door
-            if (hasItem("KEY")) {
-                return (DoorEvent)event;
+            DoorEvent door = (DoorEvent)event;
+            // Check if this is a special door that requires legendary key
+            if (door.getRequiredKey() != null && door.getRequiredKey().equals("LEGENDARY KEY")) {
+                // If it requires legendary key, check if player has it
+                if (hasItem("LEGENDARY KEY")) {
+                    return door;
+                }
+                // If not, return null to indicate door can't be opened
+                return null;
+            } else {
+                // Normal doors just require the regular KEY
+                if (hasItem("KEY")) {
+                    return door;
+                }
             }
         }
         return null;
@@ -352,6 +363,10 @@ public class Character implements Common {
 
     public void setDirection(int dir) {
         direction = dir;
+    }
+
+    public int getDirection() {
+        return direction;
     }
 
     public boolean isMoving() {
