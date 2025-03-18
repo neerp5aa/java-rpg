@@ -53,6 +53,18 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
         setFocusable(true);
         addKeyListener(this);
 
+        // Show game instructions popup
+        JOptionPane.showMessageDialog(this,
+            "<html><h2>Welcome to the RPG Game!</h2>" +
+            "<ul>" +
+            "<li>Find the Legendary Key in the cave</li>" +
+            "<li>Navigate through the maze and village</li>" +
+            "<li>Bring the Key to the Queen to win the game</li>" +
+            "</ul>" +
+            "<p>Use arrow keys to move and SPACE to interact</p></html>",
+            "Game Instructions",
+            JOptionPane.INFORMATION_MESSAGE);
+
         // create action keys
         leftKey = new ActionKey();
         rightKey = new ActionKey();
