@@ -78,6 +78,10 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
         maps[1] = new Map("map/field.map", "event/field.evt", "field", this);
         maps[2] = new Map("map/cave.map", "event/cave.evt", "cave", this);
         maps[3] = new Map("map/village.map", "event/village.evt", "village", this);
+        
+        // Randomize the legendary key position in the cave
+        randomizeLegendaryKeyPosition();
+        
         mapNo = 0;  // initial map
 
         // create character
@@ -390,7 +394,13 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
                     // Save inventory before changing maps
                     ArrayList<String> savedInventory = new ArrayList<>(hero.getInventory());
                     
+                    int previousMapNo = mapNo;
                     mapNo = m.destMapNo;
+                    
+                    // If entering the cave map, randomize the legendary key position
+                    if (mapNo == 2 && previousMapNo != 2) {
+                        randomizeLegendaryKeyPosition();
+                    }
                     
                     // Ensure destination is not a wall or invalid area
                     int safeX = m.destX;
@@ -503,6 +513,63 @@ class MainPanel extends JPanel implements KeyListener, Runnable, Common {
         // load sound clip files
         for (int i = 0; i < soundNames.length; i++) {
             waveEngine.load(soundNames[i], "sound/" + soundNames[i] + ".wav");
+        }
+    }
+
+    // Method to randomize the legendary key position in the cave map
+    private void randomizeLegendaryKeyPosition() {
+        Map caveMap = maps[2]; // Cave map is at index 2
+        if (caveMap == null) return;
+        
+        // Find the legendary key event and remove it
+        Vector<Event> events = caveMap.getEvents();
+        TreasureEvent legendaryKeyEvent = null;
+        
+        for (int i = 0; i < events.size(); i++) {
+            Event event = events.get(i);
+            if (event instanceof TreasureEvent) {
+                TreasureEvent treasure = (TreasureEvent) event;
+                if (treasure.getItemName().equals("LEGENDARY KEY")) {
+                    legendaryKeyEvent = treasure;
+                    caveMap.removeEvent(event);
+                    break;
+                }
+            }
+        }
+        
+        if (legendaryKeyEvent == null) return;
+        
+        // Find valid positions (not walls, not other events, not red crystals)
+        ArrayList<Point> validPositions = new ArrayList<>();
+        
+        for (int y = 4; y < caveMap.getRow() - 4; y++) {
+            for (int x = 4; x < caveMap.getCol() - 4; x++) {
+                // Skip walls and red crystals
+                int tileValue = caveMap.getTileAt(x, y);
+                if (tileValue == 4 || tileValue == 6) continue; // Skip walls (4) and red crystals (6)
+                
+                // Skip if another event exists at this position
+                boolean hasEvent = false;
+                for (Event event : events) {
+                    if (event.x == x && event.y == y) {
+                        hasEvent = true;
+                        break;
+                    }
+                }
+                
+                if (!hasEvent) {
+                    validPositions.add(new Point(x, y));
+                }
+            }
+        }
+        
+        if (validPositions.size() > 0) {
+            // Select a random position
+            Point randomPos = validPositions.get(rand.nextInt(validPositions.size()));
+            
+            // Create a new legendary key event at the random position
+            TreasureEvent newKeyEvent = new TreasureEvent(randomPos.x, randomPos.y, "LEGENDARY KEY");
+            caveMap.addEvent(newKeyEvent);
         }
     }
 }

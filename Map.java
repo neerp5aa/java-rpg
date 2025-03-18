@@ -177,6 +177,14 @@ public class Map implements Common {
         return characters;
     }
 
+    public Vector<Event> getEvents() {
+        return events;
+    }
+
+    public void addEvent(Event event) {
+        events.add(event);
+    }
+
     public String getBgmName() {
         return bgmName;
     }
