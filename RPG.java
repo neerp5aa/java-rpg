@@ -2,10 +2,13 @@ import java.awt.*;
 import javax.swing.*;
 
 public class RPG extends JFrame {
+    // Added for testing
+    private MainPanel panel;
+    
     public RPG() {
         setTitle("RPG");
 
-        MainPanel panel = new MainPanel();
+        panel = new MainPanel();
         Container contentPane = getContentPane();
         contentPane.add(panel);
 

@@ -1,0 +1,4 @@
+CHARA 1 1 2 0 Welcome to the test map!
+TREASURE 3 3 15 Legendary Key false
+DOOR 4 4 7 1
+MOVE 0 4 2 
